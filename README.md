@@ -1,3 +1,12 @@
+# Reflection
+
+This activity compared three approaches to answering developer questions from local docs: 
+naive LLM generation, retrieval only, and RAG. The biggest takeaway was that better answers 
+come from better system design, not a smarter model. Retrieval grounded the LLM's responses 
+and prevented hallucination, while guardrails made "I do not know" a feature rather than a 
+failure. The trickiest part was tuning the scoring threshold to balance precision without 
+blocking valid queries.
+
 # DocuBot
 
 DocuBot is a small documentation assistant that helps answer developer questions about a codebase.  

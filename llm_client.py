@@ -45,16 +45,18 @@ class GeminiClient:
     # -----------------------------------------------------------
     # Phase 0: naive generation over full docs
     # -----------------------------------------------------------
-
     def naive_answer_over_full_docs(self, query, all_text):
-        # We ignore all_text and send a generic prompt instead
         prompt = f"""
-    You are a documentation assistant. 
-    Answer this developer question: {query}
+    You are a documentation assistant.
+    Here is the project documentation:
+
+    {all_text}
+
+    Answer this developer question using the documentation above:
+    {query}
     """
         response = self.model.generate_content(prompt)
         return (response.text or "").strip()
-
     # -----------------------------------------------------------
     # Phase 2: RAG style generation over retrieved snippets
     # -----------------------------------------------------------
@@ -102,8 +104,8 @@ Developer question:
 Rules:
 - Use only the information in the snippets. Do not invent new functions,
   endpoints, or configuration values.
-- If the snippets are not enough to answer confidently, reply exactly:
-  "I do not know based on the docs I have."
+- If the snippets contain relevant information, use it to answer even if incomplete.
+- Only refuse if the snippets are completely unrelated to the question.
 - When you do answer, briefly mention which files you relied on.
 """
 

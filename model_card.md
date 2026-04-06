@@ -1,147 +1,54 @@
 # DocuBot Model Card
 
-This model card is a short reflection on your DocuBot system. Fill it out after you have implemented retrieval and experimented with all three modes:
+## System Overview
+DocuBot is a retrieval-augmented assistant that answers developer questions
+using local documentation files. It supports three modes: naive LLM generation,
+retrieval only, and full RAG (retrieval + generation).
 
-1. Naive LLM over full docs  
-2. Retrieval only  
-3. RAG (retrieval plus LLM)
+## Mode Comparisons
 
-Use clear, honest descriptions. It is fine if your system is imperfect.
+### Question: "Where is the auth token generated?"
 
----
+| Mode | Answer Quality | Notes |
+|------|---------------|-------|
+| Naive LLM | Poor | Hallucinated — mentioned Auth0, Okta, AWS with no basis in docs |
+| Retrieval Only | Good | Returned accurate AUTH.md snippets, but raw and hard to interpret |
+| RAG | Best | Concise, grounded, cited AUTH.md correctly |
 
-## 1. System Overview
+### Question: "Which endpoint returns all users?"
 
-**What is DocuBot trying to do?**  
-Describe the overall goal in 2 to 3 sentences.
+| Mode | Answer Quality | Notes |
+|------|---------------|-------|
+| Naive LLM | Accidentally correct | Got lucky — this info exists in general web knowledge |
+| Retrieval Only | Good | Found right snippets from API_REFERENCE.md and DATABASE.md |
+| RAG | Good | Clean answer but missed the explicit endpoint name GET /api/users |
 
-> _Your answer here._
+## Key Observations
 
-**What inputs does DocuBot take?**  
-For example: user question, docs in folder, environment variables.
+**Where naive generation fails:**
+The model answered the auth token question with confident, detailed information
+about Auth0, Okta, and AWS — none of which appear anywhere in the docs.
+Fluent output is not the same as accurate output.
 
-> _Your answer here._
+**Where retrieval only falls short:**
+Retrieval returns raw text chunks that are accurate but require the user to
+interpret them. It also has no ability to synthesize across multiple snippets.
 
-**What outputs does DocuBot produce?**
+**Where RAG works best:**
+RAG combines the accuracy of retrieval with the readability of generation.
+Answers are grounded in real snippets and cite their sources.
 
-> _Your answer here._
+**Where RAG still fails:**
+RAG can miss specific details if the retrieved snippet contains the context
+but not the exact answer. Example: retrieved "returns a list of all users,
+admin only" but missed stating the actual endpoint GET /api/users.
 
----
+## Guardrail Behavior
+DocuBot refuses to answer when no snippets score above the minimum threshold.
+Example: "What's the weather like?" correctly returns "I do not know based
+on these docs." This prevents confident but unsupported answers.
 
-## 2. Retrieval Design
-
-**How does your retrieval system work?**  
-Describe your choices for indexing and scoring.
-
-- How do you turn documents into an index?
-- How do you score relevance for a query?
-- How do you choose top snippets?
-
-> _Your answer here._
-
-**What tradeoffs did you make?**  
-For example: speed vs precision, simplicity vs accuracy.
-
-> _Your answer here._
-
----
-
-## 3. Use of the LLM (Gemini)
-
-**When does DocuBot call the LLM and when does it not?**  
-Briefly describe how each mode behaves.
-
-- Naive LLM mode:
-- Retrieval only mode:
-- RAG mode:
-
-> _Your answer here._
-
-**What instructions do you give the LLM to keep it grounded?**  
-Summarize the rules from your prompt. For example: only use snippets, say "I do not know" when needed, cite files.
-
-> _Your answer here._
-
----
-
-## 4. Experiments and Comparisons
-
-Run the **same set of queries** in all three modes. Fill in the table with short notes.
-
-You can reuse or adapt the queries from `dataset.py`.
-
-| Query | Naive LLM: helpful or harmful? | Retrieval only: helpful or harmful? | RAG: helpful or harmful? | Notes |
-|------|---------------------------------|--------------------------------------|---------------------------|-------|
-| Example: Where is the auth token generated? | | | | |
-| Example: How do I connect to the database? | | | | |
-| Example: Which endpoint lists all users? | | | | |
-| Example: How does a client refresh an access token? | | | | |
-
-**What patterns did you notice?**  
-
-- When does naive LLM look impressive but untrustworthy?  
-- When is retrieval only clearly better?  
-- When is RAG clearly better than both?
-
-> _Your answer here._
-
----
-
-## 5. Failure Cases and Guardrails
-
-**Describe at least two concrete failure cases you observed.**  
-For each one, say:
-
-- What was the question?  
-- What did the system do?  
-- What should have happened instead?
-
-> _Failure case 1 here._
-
-> _Failure case 2 here._
-
-**When should DocuBot say “I do not know based on the docs I have”?**  
-Give at least two specific situations.
-
-> _Your answer here._
-
-**What guardrails did you implement?**  
-Examples: refusal rules, thresholds, limits on snippets, safe defaults.
-
-> _Your answer here._
-
----
-
-## 6. Limitations and Future Improvements
-
-**Current limitations**  
-List at least three limitations of your DocuBot system.
-
-1. _Limitation 1_
-2. _Limitation 2_
-3. _Limitation 3_
-
-**Future improvements**  
-List two or three changes that would most improve reliability or usefulness.
-
-1. _Improvement 1_
-2. _Improvement 2_
-3. _Improvement 3_
-
----
-
-## 7. Responsible Use
-
-**Where could this system cause real world harm if used carelessly?**  
-Think about wrong answers, missing information, or over trusting the LLM.
-
-> _Your answer here._
-
-**What instructions would you give real developers who want to use DocuBot safely?**  
-Write 2 to 4 short bullet points.
-
-- _Guideline 1_
-- _Guideline 2_
-- _Guideline 3 (optional)_
-
----
+## Design Decisions
+- Chunking by paragraph (double newline) kept snippets focused
+- min_score=3 threshold balanced precision without blocking valid queries
+- RAG prompt instructs model to cite source files and avoid invention
